@@ -57,25 +57,30 @@ public class CustomerServiceImpl implements CustomerService {
 				}
 			}
 		}
-		if(selectedDriver!=null) {
-			TripBooking tripBooking = new TripBooking();
-			tripBooking.setFromLocation(fromLocation);
-			tripBooking.setToLocation(toLocation);
-			tripBooking.setDistanceInKm(distanceInKm);
-			tripBooking.setStatus(TripStatus.CONFIRMED);
-			Driver driver = new Driver();
-			Customer customer = customerRepository2.findById(customerId).get();
-			tripBooking.setCustomer(customer);
-			customer.getTripBookingList().add(tripBooking);
-			selectedDriver.getTripBookingList().add(tripBooking);
-			driverRepository2.save(driver);
-			customerRepository2.save(customer);
-			return tripBooking;
-		}
-		else
+		if(selectedDriver==null)
 		{
 			throw new Exception("No cab available!");
 		}
+		TripBooking newTripBooked = new TripBooking();
+		newTripBooked.setCustomer(customerRepository2.findById(customerId).get());
+		newTripBooked.setFromLocation(fromLocation);
+		newTripBooked.setToLocation(toLocation);
+		newTripBooked.setDistanceInKm(distanceInKm);
+		newTripBooked.setStatus(TripStatus.CONFIRMED);
+		newTripBooked.setDriver(selectedDriver);
+		int rate = selectedDriver.getCab().getPerKmRate();
+		newTripBooked.setBill(distanceInKm*rate);
+
+		selectedDriver.getCab().setAvailable(false);
+		driverRepository2.save(selectedDriver);
+
+		Customer customer = customerRepository2.findById(customerId).get();
+		customer.getTripBookingList().add(newTripBooked);
+		customerRepository2.save(customer);
+
+
+		tripBookingRepository2.save(newTripBooked);
+		return newTripBooked;
 
 	}
 
@@ -83,26 +88,18 @@ public class CustomerServiceImpl implements CustomerService {
 	public void cancelTrip(Integer tripId){
 		//Cancel the trip having given trip Id and update TripBooking attributes accordingly
 		TripBooking tripBooking=tripBookingRepository2.findById(tripId).get();
-		if(tripBooking!=null)
-		{
-			tripBooking.setStatus(TripStatus.CANCELED);
-			tripBooking.setBill(0);
-			Driver driver=tripBooking.getDriver();
-			driver.getCab().setAvailable(true);
-			tripBookingRepository2.save(tripBooking);
-		}
+		tripBooking.setStatus(TripStatus.CANCELED);
+		tripBooking.setBill(0);
+		tripBooking.getDriver().getCab().setAvailable(true);
+		tripBookingRepository2.save(tripBooking);
 	}
 
 	@Override
 	public void completeTrip(Integer tripId){
 		//Complete the trip having given trip Id and update TripBooking attributes accordingly
 		TripBooking tripBooking=tripBookingRepository2.findById(tripId).get();
-		if(tripBooking!=null);
-		{
-			tripBooking.setStatus(TripStatus.COMPLETED);
-			Driver driver=tripBooking.getDriver();
-			driver.getCab().setAvailable(true);
-			tripBookingRepository2.save(tripBooking);
-		}
+		tripBooking.setStatus(TripStatus.COMPLETED);
+		tripBooking.getDriver().getCab().setAvailable(true);
+		tripBookingRepository2.save(tripBooking);
 	}
 }
